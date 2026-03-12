@@ -1,0 +1,44 @@
+@import 'tailwindcss';
+
+@theme {
+  /* Danube Blue Color Palette — deeper indigo-blue to evoke the Danube river */
+  --color-danube-50: #eff6ff;
+  --color-danube-100: #dbeafe;
+  --color-danube-200: #bfdbfe;
+  --color-danube-300: #93c5fd;
+  --color-danube-400: #60a5fa;
+  --color-danube-500: #3b82f6;
+  --color-danube-600: #2563eb;
+  --color-danube-700: #1d4ed8;
+  --color-danube-800: #1e40af;
+  --color-danube-900: #1e3a8a;
+
+  /* Custom Font Families */
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+  --font-family-serif: 'Merriweather', Georgia, serif;
+}
+
+@layer utilities {
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .focus\:not-sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+}
