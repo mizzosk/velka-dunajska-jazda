@@ -3,7 +3,6 @@ import { DayItinerary, PlaceHighlight } from '../types';
 import {
   Anchor,
   MapPin,
-  Timer,
   Bike,
   Car,
   Image as ImageIcon,
