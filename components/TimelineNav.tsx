@@ -136,7 +136,7 @@ export const TimelineNav: React.FC = () => {
 
         <div
           ref={scrollContainerRef}
-          className="flex justify-start md:justify-center gap-2 md:gap-4 overflow-x-auto no-scrollbar py-3 px-4 -mx-4"
+          className="flex justify-center gap-2 md:gap-4 overflow-x-auto no-scrollbar py-3 px-4 -mx-4"
         >
           {TRIP_ITINERARY.map((day, index) => (
             <a

@@ -38,6 +38,17 @@ export interface PlaceHighlight {
 }
 
 /**
+ * A waypoint stop along the day's route with optional tips
+ */
+export interface Waypoint {
+  name: string;
+  description: string;
+  kidsTip?: string;
+  foodTip?: string;
+  mapUrl?: string;
+}
+
+/**
  * Complete itinerary for a single day of the trip
  */
 export interface DayItinerary {
@@ -51,6 +62,9 @@ export interface DayItinerary {
   ferries?: FerryDetails[];
   stats: CyclingStats;
   summary: string;
+  dayTitle?: string;
+  intro?: string;
+  waypoints?: Waypoint[];
   placesVisited: PlaceHighlight[];
   transportMode?: 'bike' | 'car';
   sunrise?: string;

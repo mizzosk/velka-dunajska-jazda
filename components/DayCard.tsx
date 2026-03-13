@@ -13,6 +13,7 @@ import {
   Hotel,
   Baby,
   ExternalLink,
+  UtensilsCrossed,
 } from 'lucide-react';
 
 interface DayCardProps {
@@ -31,6 +32,7 @@ const isPlaceHighlight = (p: unknown): p is PlaceHighlight => {
 const DayCardComponent: React.FC<DayCardProps> = ({ data }) => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const imageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const mapSrc = getIframeSrc(data.mapEmbedHtml);
   const isCar = data.transportMode === 'car';
@@ -41,22 +43,23 @@ const DayCardComponent: React.FC<DayCardProps> = ({ data }) => {
 
   useEffect(() => {
     const images = Array.from(imageRefs.current.values());
-    if (images.length === 0) return;
+    if (images.length === 0 || !scrollContainerRef.current) return;
 
-    const observerOptions = {
-      root: images[0]?.parentElement ?? null,
-      rootMargin: '0px',
-      threshold: 0.6,
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
-          const index = parseInt(entry.target.getAttribute('data-index') ?? '0', 10);
-          setActiveImageIndex(index);
-        }
-      });
-    }, observerOptions);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const index = parseInt(entry.target.getAttribute('data-index') ?? '0', 10);
+            setActiveImageIndex(index);
+          }
+        });
+      },
+      {
+        root: scrollContainerRef.current,
+        rootMargin: '0px',
+        threshold: 0.5,
+      }
+    );
 
     images.forEach((img) => observer.observe(img));
     return () => observer.disconnect();
@@ -121,163 +124,212 @@ const DayCardComponent: React.FC<DayCardProps> = ({ data }) => {
         )}
 
         <div className="p-6 md:p-10">
-          {/* Morning drive info */}
-          {data.driveInfo && (
-            <div className="mb-8 bg-stone-50 rounded-xl p-5 border border-stone-100 flex flex-col md:flex-row md:items-center gap-4">
-              <div className="flex items-center gap-2 text-stone-600 shrink-0">
-                <Car size={20} className="text-danube-500" />
-                <span className="font-bold uppercase tracking-wide text-sm">Ranná jazda</span>
-              </div>
-              <div className="flex flex-wrap gap-4 text-sm text-stone-700">
-                <span>
-                  <strong>{data.driveInfo.from}</strong> → <strong>{data.driveInfo.to}</strong>
-                </span>
-                <span className="text-stone-400">|</span>
-                <span>Odchod: <strong>{data.driveInfo.departureTime}</strong></span>
-                <span>Príchod: <strong>{data.driveInfo.arrivalTime}</strong></span>
-                <span className="text-stone-500">({Math.floor(data.driveInfo.durationMin / 60)}h {data.driveInfo.durationMin % 60}min)</span>
-              </div>
-            </div>
-          )}
-
-          {/* Route & Logistics */}
-          <div className="grid md:grid-cols-2 gap-8 mb-10">
-            <div>
-              <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-3">
-                Profil trasy
-              </h3>
-              <p className="text-xl font-serif text-stone-800 mb-4">{data.routeDescription}</p>
-
-              <div className="grid grid-cols-2 gap-4 bg-stone-50 rounded-xl p-4 border border-stone-100">
-                <div className="text-center">
-                  {isCar ? (
-                    <Car size={18} className="mx-auto text-danube-500 mb-1" />
-                  ) : (
-                    <Bike size={18} className="mx-auto text-danube-500 mb-1" />
-                  )}
-                  <div className="font-bold text-stone-800">
-                    {data.stats.distanceKm} <span className="text-[10px] text-stone-500">km</span>
-                  </div>
-                </div>
-                <div className="text-center border-l border-stone-200">
-                  <Timer size={18} className="mx-auto text-danube-500 mb-1" />
-                  <div className="font-bold text-stone-800">
-                    {data.stats.durationH} <span className="text-[10px] text-stone-500">h</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Parking & Accommodation links */}
-              <div className="mt-4 flex flex-wrap gap-2">
-                {data.parkingUrl && (
-                  <a
-                    href={data.parkingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-danube-700 bg-danube-50 hover:bg-danube-100 border border-danube-200 px-3 py-1.5 rounded-full transition-colors"
-                  >
-                    <ParkingCircle size={13} /> Parkovisko
-                    <ExternalLink size={11} className="opacity-60" />
-                  </a>
-                )}
-                {data.accommodationUrl && (
-                  <a
-                    href={data.accommodationUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-danube-700 bg-danube-50 hover:bg-danube-100 border border-danube-200 px-3 py-1.5 rounded-full transition-colors"
-                  >
-                    <Hotel size={13} /> Ubytovanie
-                    <ExternalLink size={11} className="opacity-60" />
-                  </a>
-                )}
-                {data.waitingSpotUrl && (
-                  <a
-                    href={data.waitingSpotUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-danube-700 bg-danube-50 hover:bg-danube-100 border border-danube-200 px-3 py-1.5 rounded-full transition-colors"
-                  >
-                    <MapPin size={13} /> Čakáme tu
-                    <ExternalLink size={11} className="opacity-60" />
-                  </a>
-                )}
-              </div>
-            </div>
-
-            {/* Ferry Cards */}
-            {data.ferries && data.ferries.length > 0 && (
-              <div className="space-y-4">
-                {data.ferries.map((ferry, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-amber-50 rounded-xl p-5 border border-amber-100 flex flex-col justify-center"
-                  >
-                    <div className="flex items-center gap-2 mb-3 text-amber-800">
-                      <Anchor size={18} />
-                      <span className="font-bold uppercase tracking-wide text-sm">{ferry.label}</span>
+          {/* Journey timeline card */}
+          <div className="mb-8 rounded-xl border border-stone-100 overflow-hidden">
+            <div className="px-5 pt-5 pb-4">
+              {/* Drive segment */}
+              {data.driveInfo && (
+                <div className="flex gap-4">
+                  {/* Timeline spine */}
+                  <div className="flex flex-col items-center flex-none">
+                    <div className="w-8 h-8 rounded-full bg-danube-50 border border-danube-100 flex items-center justify-center">
+                      <Car size={15} className="text-danube-500" />
                     </div>
-                    <div className="space-y-2 text-sm text-amber-900">
-                      <div className="flex justify-between items-start border-b border-amber-100 pb-2 gap-2">
-                        <span className="shrink-0">Odchod:</span>
-                        {ferry.departureUrl ? (
-                          <a
-                            href={ferry.departureUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-semibold text-danube-700 hover:underline inline-flex items-center gap-1 text-right"
-                          >
-                            {ferry.departureLoc} <ExternalLink size={11} />
-                          </a>
-                        ) : (
-                          <strong>{ferry.departureLoc}</strong>
-                        )}
+                    <div className="w-px flex-1 min-h-[24px] bg-stone-200 my-1 border-l border-dashed border-stone-300" />
+                  </div>
+                  {/* Content */}
+                  <div className="flex-1 min-w-0 pb-4">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mb-1">
+                      <span className="font-semibold text-stone-800">
+                        {data.driveInfo.from} → {data.driveInfo.to}
+                      </span>
+                      <span className="text-sm text-stone-400">
+                        {data.driveInfo.departureTime} – {data.driveInfo.arrivalTime}
+                        <span className="ml-1">({Math.floor(data.driveInfo.durationMin / 60)}h {data.driveInfo.durationMin % 60}min)</span>
+                      </span>
+                    </div>
+                    {data.parkingUrl && (
+                      <a
+                        href={data.parkingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-danube-600 hover:text-danube-800 transition-colors"
+                      >
+                        <ParkingCircle size={12} /> Parkovisko
+                        <ExternalLink size={10} className="opacity-50" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Bike / car route segment */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center flex-none">
+                  <div className="w-8 h-8 rounded-full bg-danube-50 border border-danube-100 flex items-center justify-center">
+                    {isCar ? <Car size={15} className="text-danube-500" /> : <Bike size={15} className="text-danube-500" />}
+                  </div>
+                  {data.ferries && data.ferries.length > 0 && (
+                    <div className="w-px flex-1 min-h-[24px] bg-stone-200 my-1 border-l border-dashed border-stone-300" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 pb-4">
+                  <p className="font-semibold text-stone-800 mb-2">{data.routeDescription}</p>
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-2xl font-bold text-stone-900 leading-none">
+                      {data.stats.distanceKm}
+                      <span className="text-sm font-normal text-stone-400 ml-1">km</span>
+                    </span>
+                    <span className="text-stone-300 text-lg">·</span>
+                    <span className="text-2xl font-bold text-stone-900 leading-none">
+                      {data.stats.durationH}
+                      <span className="text-sm font-normal text-stone-400 ml-1">h</span>
+                    </span>
+                  </div>
+                  {(data.accommodationUrl || data.waitingSpotUrl) && (
+                    <div className="flex flex-wrap gap-3 mt-2">
+                      {data.accommodationUrl && (
+                        <a
+                          href={data.accommodationUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-danube-600 hover:text-danube-800 transition-colors"
+                        >
+                          <Hotel size={12} /> Ubytovanie
+                          <ExternalLink size={10} className="opacity-50" />
+                        </a>
+                      )}
+                      {data.waitingSpotUrl && (
+                        <a
+                          href={data.waitingSpotUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-danube-600 hover:text-danube-800 transition-colors"
+                        >
+                          <MapPin size={12} /> Ihrisko Vác
+                          <ExternalLink size={10} className="opacity-50" />
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Ferry segments */}
+              {data.ferries && data.ferries.map((ferry, idx) => {
+                const isLast = idx === data.ferries!.length - 1;
+                return (
+                  <div key={idx} className="flex gap-4">
+                    <div className="flex flex-col items-center flex-none">
+                      <div className="w-8 h-8 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center">
+                        <Anchor size={14} className="text-amber-600" />
                       </div>
-                      <div className="flex justify-between items-start border-b border-amber-100 pb-2 gap-2">
-                        <span className="shrink-0">Príchod:</span>
-                        {ferry.arrivalUrl ? (
-                          <a
-                            href={ferry.arrivalUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-semibold text-danube-700 hover:underline inline-flex items-center gap-1 text-right"
-                          >
-                            {ferry.arrivalLoc} <ExternalLink size={11} />
+                      {!isLast && (
+                        <div className="w-px flex-1 min-h-[24px] bg-stone-200 my-1 border-l border-dashed border-stone-300" />
+                      )}
+                    </div>
+                    <div className={`flex-1 min-w-0 ${!isLast ? 'pb-4' : ''}`}>
+                      <p className="font-semibold text-stone-700 text-sm mb-1">{ferry.label}</p>
+                      <div className="flex flex-wrap items-center gap-1 text-sm text-stone-500">
+                        {ferry.departureUrl ? (
+                          <a href={ferry.departureUrl} target="_blank" rel="noopener noreferrer"
+                            className="font-medium text-danube-600 hover:text-danube-800 inline-flex items-center gap-0.5 transition-colors">
+                            {ferry.departureLoc} <ExternalLink size={10} className="opacity-50" />
                           </a>
                         ) : (
-                          <strong>{ferry.arrivalLoc}</strong>
+                          <span className="font-medium text-stone-700">{ferry.departureLoc}</span>
+                        )}
+                        {ferry.arrivalLoc && <span className="text-stone-300">→</span>}
+                        {ferry.arrivalUrl ? (
+                          <a href={ferry.arrivalUrl} target="_blank" rel="noopener noreferrer"
+                            className="font-medium text-danube-600 hover:text-danube-800 inline-flex items-center gap-0.5 transition-colors">
+                            {ferry.arrivalLoc} <ExternalLink size={10} className="opacity-50" />
+                          </a>
+                        ) : (
+                          ferry.arrivalLoc && <span className="font-medium text-stone-700">{ferry.arrivalLoc}</span>
                         )}
                       </div>
                       {ferry.note && (
-                        <p className="text-xs italic mt-2 opacity-80">{ferry.note}</p>
+                        <p className="text-xs text-stone-400 italic mt-0.5">{ferry.note}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Waypoints itinerary (replaces both Denník and Tipy pre deti) */}
+          {data.waypoints && data.waypoints.length > 0 ? (
+            <div className="mb-10">
+              <div className="mb-5">
+                <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">Deň {data.dayIndex}</p>
+                <h3 className="text-xl font-serif font-semibold text-stone-800">
+                  {data.dayTitle ?? data.routeDescription}
+                </h3>
+              </div>
+              {data.intro && (
+                <p className="text-stone-500 leading-relaxed mb-6">{data.intro}</p>
+              )}
+              <div className="space-y-6">
+                {data.waypoints.map((wp, idx) => (
+                  <div key={idx} className="flex gap-3">
+                    <div className="flex flex-col items-center flex-none pt-0.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-danube-400 mt-1.5 flex-none" />
+                      {idx < data.waypoints!.length - 1 && (
+                        <div className="w-px flex-1 min-h-[20px] bg-stone-200 mt-1" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 pb-2">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <h4 className="font-semibold text-stone-800">{wp.name}</h4>
+                        {wp.mapUrl && (
+                          <a href={wp.mapUrl} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-0.5 text-xs text-danube-500 hover:text-danube-700 transition-colors">
+                            <MapPin size={12} /> Mapa <ExternalLink size={10} className="opacity-50" />
+                          </a>
+                        )}
+                      </div>
+                      <p className="text-stone-500 leading-relaxed mb-2">{wp.description}</p>
+                      {wp.kidsTip && (
+                        <div className="flex items-start gap-2 mt-1.5">
+                          <Baby size={14} className="text-green-500 mt-0.5 flex-none" />
+                          <p className="text-sm text-stone-500 leading-relaxed">{wp.kidsTip}</p>
+                        </div>
+                      )}
+                      {wp.foodTip && (
+                        <div className="flex items-start gap-2 mt-1.5">
+                          <UtensilsCrossed size={14} className="text-amber-500 mt-0.5 flex-none" />
+                          <p className="text-sm text-stone-500 leading-relaxed">{wp.foodTip}</p>
+                        </div>
                       )}
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-
-          {/* Kids Tip */}
-          {data.kidsTip && (
-            <div className="mb-10 bg-green-50 rounded-xl p-5 border border-green-100">
-              <div className="flex items-center gap-2 mb-2 text-green-800">
-                <Baby size={18} />
-                <span className="font-bold uppercase tracking-wide text-sm">Tipy pre deti</span>
+            </div>
+          ) : (
+            <>
+              {/* Kids Tip fallback */}
+              {data.kidsTip && (
+                <div className="mb-8 border-l-2 border-green-400 pl-4 py-0.5">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Baby size={14} className="text-green-600" />
+                    <span className="text-xs font-bold text-green-700 uppercase tracking-widest">Tipy pre deti</span>
+                  </div>
+                  <p className="text-sm text-stone-600 leading-relaxed">{data.kidsTip}</p>
+                </div>
+              )}
+              {/* Journal Summary fallback */}
+              <div className="mb-10">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-bold text-stone-400 uppercase tracking-widest">Denník</span>
+                  <div className="flex-1 h-px bg-stone-100" />
+                </div>
+                <p className="text-stone-600 leading-relaxed text-lg">{data.summary}</p>
               </div>
-              <p className="text-sm text-green-900 leading-relaxed">{data.kidsTip}</p>
-            </div>
+            </>
           )}
-
-          {/* Journal Summary */}
-          <div className="mb-12">
-            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-3">
-              Denník
-            </h3>
-            <div className="prose prose-stone max-w-none">
-              <p className="text-stone-600 leading-relaxed text-lg">{data.summary}</p>
-            </div>
-          </div>
 
           {/* Visual Highlights Gallery */}
           {showGallery && (
@@ -294,7 +346,7 @@ const DayCardComponent: React.FC<DayCardProps> = ({ data }) => {
               </div>
 
               {/* Mobile: Horizontal scroll */}
-              <div className="overflow-x-auto no-scrollbar -mx-6 px-6 md:hidden snap-x snap-proximity">
+              <div ref={scrollContainerRef} className="overflow-x-auto no-scrollbar -mx-6 px-6 md:hidden snap-x snap-proximity">
                 <div className="flex gap-3 pb-2">
                   {displayImages.map((item, idx) => {
                     const place = data.placesVisited[idx % data.placesVisited.length];
